@@ -31,10 +31,18 @@ if not os.path.exists("vk"):
 # Write out the header guard for the Main Vulkan bindings function
 vkHeaderText = "// This was auto generated as part of the Vulkan bindings, so we can dynamically load Vulkan\n" 
 vkHeaderText += "#ifndef __VK_CLAY_BINDINGS_H__\n#define __VK_CLAY_BINDINGS_H__\n"
-vkHeaderText += "#include \"vulkan.h\"\n\n"
+vkHeaderText += "#define VK_NO_PROTOTYPES\n#include \"Vulkan_Raw/vulkan.h\"\n\n"
 vkHeader = open("vk/vkBinding.h", "w")
 vkHeader.write(vkHeaderText)
 vkHeaderText = ""
+
+# Write out to the stubs, these are functions that stop us from getting unresolved externals
+# As well as stopping the user from getting nullptr exceptions
+VkStubText = "// Auto generated as part of the Vulkan bindings, provides stubs\n"
+VkStubText += "#include \"VkClay/vk/vkBinding.h\"\n#include <stdio.h>\n\n"
+vkStubs = open("vk/vkStubs.c", "w")
+vkStubs.write(VkStubText)
+VkStubText = ""
 
 # We now know for sure that the user has passed an xml file
 # So we can start processing it as if it was an xml
@@ -67,31 +75,59 @@ for command in commandRoot:
 #
 def make_header_and_stub(functionName):
     global vkHeaderText
+    global VkStubText
+
     # Find the xml root for this function by looking it up in the dictionary
     command = func_name_dict[functionName]
     if command is None:
         print("Unfound command" + functionName)
         return
 
-    # We can now process the function name 
+    # Get all the named types we might need
+    returnType = command.find("./proto/type").text
+    params = command.findall("./param")
+
+    # We can now process the function name in the header
     vkHeaderText += "/**\n * @brief " + functionName + "\n *"
 
+    # Add the Function definition in the stub
+    VkStubText += "VKAPI_ATTR " + returnType + " VKAPI_CALL stub_" + functionName + "( " 
+
     # Process the paramaters this function takes
-    params = command.findall("./param")
     for param in params:
-        vkHeaderText += " @param " + param.find("./name").text + " "
+        # param name
+        paramName = param.find("./name").text
+
+        # Is the paramater const?
+        if "const" in str(param.text):
+            VkStubText += "const "
+        
+        # paramater type
+        paramType = param.find("type").text
+        VkStubText += paramType
+
+        vkHeaderText += " @param " + paramName + " "
+        
+        # If paramater is a pointer
         if param.find("./*") is not None :
             vkHeaderText += "Pointer to "
-        vkHeaderText += param.find("type").text + "\n *"
+            VkStubText += "*"
 
-    # Get the return type of the function
-    returnType = command.find("./proto/type").text
+        vkHeaderText += paramType + "\n *"
+        VkStubText += " " + paramName + ", "
+
+    # Finished the paramaters 
+    VkStubText = VkStubText[:-2] + ")\n{\n\tprintf(\"Not connected " + functionName + " to a function pointer\");\n"
+
     if returnType =="PFN_vkVoidFunction":
         vkHeaderText += " @returns PFN_vkVoidFunction function pointer \n *"
+        VkStubText += "\treturn NULL;"
     elif returnType == "VkBool32":
         vkHeaderText += " @ returns VkBool32 VK_TRUE if true, else VK_FALSE \n *"
+        VkStubText += "\treturn VK_FALSE;"
     elif returnType == "VkResult":
         vkHeaderText += " @returns VkResult, "
+        VkStubText += "\treturn VK_SUCCESS;"
         # do we have success codes?
         successcode = command.attrib.get('successcodes')
         failcode = command.attrib.get('errorcodes')
@@ -99,7 +135,6 @@ def make_header_and_stub(functionName):
             successcode = "Not in XMLs"
         if failcode is None:
             failcode = "None"
-            
         successcode = successcode.replace(",", ", ")
         failcode = failcode.replace(",", ", ")
         vkHeaderText += "Success codes : " + successcode + ", Error Codes : " + failcode
@@ -108,6 +143,8 @@ def make_header_and_stub(functionName):
         vkHeaderText += " @returns " + returnType + "\n *"
 
     vkHeaderText += "/\n"
+    VkStubText += "\n}"
+    VkStubText += "\nPFN_" + functionName + " " + functionName + " = stub_" + functionName + "; \n\n"
     # end the comments
         
     vkHeaderText += "extern PFN_" + functionName + " " + functionName + ";\n\n"
@@ -120,6 +157,10 @@ make_header_and_stub("vkCreateInstance")
 # Write out the function declarations
 vkHeader.write(vkHeaderText)
 
+vkStubs.write(VkStubText)
+vkStubs.close()
+
 # Got to the end of the main vk bindings so lets append the end of the header guard
 vkHeader.write("\n#endif")
 vkHeader.close()
+
