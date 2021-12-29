@@ -5,6 +5,14 @@
 #include "Vulkan_Raw/vulkan.h"
 
 /**
+ * @brief vkGetInstanceProcAddr
+ * @param instance Pointer to VkInstance
+ * @param pName Pointer to char
+ * @returns PFN_vkVoidFunction function pointer 
+ */
+extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+
+/**
  * @brief vkCreateInstance
  * @param pCreateInfo Pointer to VkInstanceCreateInfo
  * @param pAllocator Pointer to VkAllocationCallbacks

@@ -152,7 +152,9 @@ def make_header_and_stub(functionName):
     
 
 # Try runnnig this code for vkcreateInstance
+make_header_and_stub("vkGetInstanceProcAddr")
 make_header_and_stub("vkCreateInstance")
+
 
 # Write out the function declarations
 vkHeader.write(vkHeaderText)
