@@ -40,7 +40,7 @@ vkHeaderText = ""
 # As well as stopping the user from getting nullptr exceptions
 VkStubText = "// Auto generated as part of the Vulkan bindings, provides stubs\n"
 VkStubText += "#include \"VkClay/vk/vkBinding.h\"\n#include <stdio.h>\n\n"
-vkStubs = open("vk/vkStubs.c", "w")
+vkStubs = open("vk/VkStubs.c", "w")
 vkStubs.write(VkStubText)
 VkStubText = ""
 
