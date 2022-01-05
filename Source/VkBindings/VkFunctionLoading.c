@@ -1,17 +1,11 @@
 // Auto generated as part of the Vulkan bindings
 #include "VkClay/vk/vkBinding.h"
-void loadNullInstanceFunctions(void)
+void loadGlobalVulkanFunctions(void)
 {
+	vkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
+	vkEnumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
+	vkEnumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
 	vkCreateInstance = (PFN_vkCreateInstance)vkGetInstanceProcAddr(NULL, "vkCreateInstance");
-	vkDestroyInstance = (PFN_vkDestroyInstance)vkGetInstanceProcAddr(NULL, "vkDestroyInstance");
-	vkEnumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)vkGetInstanceProcAddr(NULL, "vkEnumeratePhysicalDevices");
-	vkGetPhysicalDeviceFeatures = (PFN_vkGetPhysicalDeviceFeatures)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceFeatures");
-	vkGetPhysicalDeviceFormatProperties = (PFN_vkGetPhysicalDeviceFormatProperties)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceFormatProperties");
-	vkGetPhysicalDeviceImageFormatProperties = (PFN_vkGetPhysicalDeviceImageFormatProperties)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceImageFormatProperties");
-	vkGetPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceProperties");
-	vkGetPhysicalDeviceQueueFamilyProperties = (PFN_vkGetPhysicalDeviceQueueFamilyProperties)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceQueueFamilyProperties");
-	vkGetPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties)vkGetInstanceProcAddr(NULL, "vkGetPhysicalDeviceMemoryProperties");
-	vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)vkGetInstanceProcAddr(NULL, "vkGetDeviceProcAddr");
 
 }
 

@@ -182,7 +182,7 @@ def make_header_and_stub(functionName):
     
 
 # String for initialising all the different functions
-nullInstance = "void loadNullInstanceFunctions(void)\n{\n"
+nullInstance = "void loadGlobalVulkanFunctions(void)\n{\n"
 coreInstance1_0 = "void loadInstance1_0_PFN(VkInstance instance)\n{\n"
 coreDevice1_0 = "void loadDevice1_0_PFN(VkInstance instance)\n{\n"
 coreInstance1_1 = "void loadInstance1_1_PFN(VkInstance instance)\n{\n"
@@ -227,26 +227,23 @@ for apiversion in xmlRoot.findall("./feature"):
             else:
                 print("Unknown API version", apiNumber)                
 
-    # Now we need to go through every API version found
-    # We're looking for the null instance functions
-    for required in apiversion.findall("./require"):
-        
-        # Go through the comments in this API version
-        if required.attrib.get("comment") is None:
-            continue
 
-        # Go through all of the functions that are required to 
-        # create the instance, they are known as null instance commands
-        if "Device init" in required.attrib.get("comment"):
-            for command in required.findall("command"):
-                # These are the commands required for device init
-                if command.attrib["name"] == "vkGetInstanceProcAddr":
-                    continue
-                nullInstance += ("\t" + command.attrib["name"] + 
-                " = (PFN_" + command.attrib["name"] + ")vkGetInstanceProcAddr(NULL, \"" + 
-                command.attrib["name"] + "\");\n")
+            
 # Done with the loop
         
+# Now we need to fetch the global commands, these are the ones that 
+# are required in order first create the instance
+# I couldn't spot them in the xml, but they seem to be never changing so 
+# we'll hard code them here
+globalCommands = ["vkEnumerateInstanceVersion", "vkEnumerateInstanceExtensionProperties",
+"vkEnumerateInstanceLayerProperties", "vkCreateInstance"]
+for command in globalCommands:
+    if command == "vkGetInstanceProcAddr":
+        continue
+    nullInstance += ("\t" + command + 
+    " = (PFN_" + command + ")vkGetInstanceProcAddr(NULL, \"" + 
+    command + "\");\n")
+
 # Write out the function declarations
 vkHeader.write(vkHeaderText)
 vkStubs.write(VkStubText)

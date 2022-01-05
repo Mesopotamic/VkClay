@@ -1,5 +1,6 @@
 #include "VkClay/dl/DynamicLoader.h"
 #include "VkClay/vk/vkBinding.h"
+#include "VkClay/vk/vkFunctionLoading.h"
 
 #include <Windows.h>
 #include <stdio.h>
@@ -29,5 +30,5 @@ void vkc_LoadVulkan(void)
     }
 
     // Now that vkprocAddr works lets find all the functions we need
-    vkCreateInstance = (PFN_vkCreateInstance)vkGetInstanceProcAddr(NULL, "vkCreateInstance");
+    loadGlobalVulkanFunctions();
 }

@@ -7,7 +7,7 @@
 #define __VK_CLAY_FUNCTION_LOADING_H__
 #include "vkBinding.h"
 
-void loadNullInstanceFunctions(void);
+void loadGlobalVulkanFunctions(void);
 
 void loadInstance1_0_PFN(VkInstance instance);
 
