@@ -1,0 +1,3 @@
+[submodule "CodeGen/Vulkan-Headers"]
+	path = CodeGen/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
