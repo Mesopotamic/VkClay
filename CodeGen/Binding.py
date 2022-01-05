@@ -44,6 +44,12 @@ vkStubs = open("vk/VkStubs.c", "w")
 vkStubs.write(VkStubText)
 VkStubText = ""
 
+# Now we also have to have function loading, there are a couple of different
+# things we have to handle, Null instance, which is used for creating an instance
+# Then loading the core functionality and then loading extensions
+funcTextSource = "// Auto generated as part of the Vulkan bindings\n"
+funcTextSource += "#include \"VkClay/vk/vkBinding.h\""
+
 # We now know for sure that the user has passed an xml file
 # So we can start processing it as if it was an xml
 print("Processing Registry ...")
@@ -65,8 +71,25 @@ for command in commandRoot:
     functionName = command.find("./proto/name")
     if functionName is None:
         continue
-
+    # Store the function details for look up later
     func_name_dict[functionName.text] = command
+
+# We Need to be able to tell if a function is instance level or device level
+# it is determined by the first paramater, It has to be either vkDevice, or a child of vkDevice 
+# [@category='handle']/*
+allTypes = xmlRoot.findall("./types/type")
+type_dict = {}
+for type in allTypes:
+    typeName = type.tag.find("name")
+    if type.get("name") == "VkInstance":
+        type_dict["VkInstance"] = "Instance"
+    elif type.get("name") == "VkDevice":
+        type_dict["VkDevice"] = "device"
+    else:
+        # Search for the parent
+        parent = type.get("parent")
+        #while parent != "VkDevice" and parent != "VkInstance":
+            #parent = xmlRoot.find("./types/type/[@name='" + parent +"']")
 
 
 #
@@ -139,30 +162,113 @@ def make_header_and_stub(functionName):
         failcode = failcode.replace(",", ", ")
         vkHeaderText += "Success codes : " + successcode + ", Error Codes : " + failcode
         vkHeaderText+= "\n *"
+    elif returnType == "VkDeviceAddress":
+        vkHeaderText += " @returns VkDeviceAddress\n *"
+        VkStubText += "\treturn (VkDeviceAddress) -1;"
+    elif returnType == "uint64_t":
+        vkHeaderText += " @returns VkDeviceAddress\n *"
+        VkStubText += "\treturn (uint64_t) -1;"
     elif returnType != "void":
         vkHeaderText += " @returns " + returnType + "\n *"
-
+        VkStubText += "\treturn VK_NULL_HANDLE;"
     vkHeaderText += "/\n"
     VkStubText += "\n}"
-    VkStubText += "\nPFN_" + functionName + " " + functionName + " = stub_" + functionName + "; \n\n"
+    VkStubText += ("\nPFN_" + functionName + " " + functionName +
+                    " = (PFN_" + functionName + ")stub_" + functionName + "; \n\n")
     # end the comments
         
     vkHeaderText += "extern PFN_" + functionName + " " + functionName + ";\n\n"
     print(command.tag, ":", functionName)
     
 
-# Try runnnig this code for vkcreateInstance
-make_header_and_stub("vkGetInstanceProcAddr")
-make_header_and_stub("vkCreateInstance")
+# String for initialising all the different functions
+nullInstance = "void loadNullInstanceFunctions(void)\n{\n"
+coreInstance1_0 = "void loadInstance1_0_PFN(VkInstance instance)\n{\n"
+coreDevice1_0 = "void loadDevice1_0_PFN(VkInstance instance)\n{\n"
+coreInstance1_1 = "void loadInstance1_1_PFN(VkInstance instance)\n{\n"
+coreDevice1_1 = "void loadDevice1_1_PFN(VkInstance instance)\n{\n"
+coreInstance1_2 = "void loadInstance1_2_PFN(VkInstance instance)\n{\n"
+coreDevice1_2 = "void loadDevice1_2_PFN(VkInstance instance)\n{\n"
 
+# Loop through all of the different API versions 
+for apiversion in xmlRoot.findall("./feature"):
+    if not apiversion.attrib.get("number") is None:
+        vkHeaderText += "\n\n// Vulkan " + apiversion.attrib.get("number") + " Fuction Declarations\n\n"
+        Vulkan_Commands = apiversion.findall("./require/command")
+        for command in Vulkan_Commands:
+            name = command.attrib["name"]
+            if name is None:
+                continue
+            
+            # now look up the command 
+            functionFound = func_name_dict[name]
+            if functionFound is None:
+                print("Unfound command" + name)
+                continue
 
+            # Add a decleration and stub definition
+            make_header_and_stub(name)
+
+            # For now we're going to use instance proc addr instead
+            # But ideally we should use device proc addr
+            # But I need to find out the way to tell if a function 
+            # is device or instance
+            pfn = ("\t" + name + " = (PFN_" + name + ")vkGetInstanceProcAddr(instance, \"" + 
+            name + "\");\n")
+
+            # Place this string in the right function
+            apiNumber = apiversion.attrib.get("number")
+            if "1.0" in apiNumber:
+                coreInstance1_0 += pfn
+            elif "1.1" in apiNumber:
+                coreInstance1_1 += pfn
+            elif "1.2" in apiNumber:
+                coreInstance1_2 += pfn
+            else:
+                print("Unknown API version", apiNumber)                
+
+    # Now we need to go through every API version found
+    # We're looking for the null instance functions
+    for required in apiversion.findall("./require"):
+        
+        # Go through the comments in this API version
+        if required.attrib.get("comment") is None:
+            continue
+
+        # Go through all of the functions that are required to 
+        # create the instance, they are known as null instance commands
+        if "Device init" in required.attrib.get("comment"):
+            for command in required.findall("command"):
+                # These are the commands required for device init
+                if command.attrib["name"] == "vkGetInstanceProcAddr":
+                    continue
+                nullInstance += ("\t" + command.attrib["name"] + 
+                " = (PFN_" + command.attrib["name"] + ")vkGetInstanceProcAddr(NULL, \"" + 
+                command.attrib["name"] + "\");\n")
+# Done with the loop
+        
 # Write out the function declarations
 vkHeader.write(vkHeaderText)
-
 vkStubs.write(VkStubText)
 vkStubs.close()
-
-# Got to the end of the main vk bindings so lets append the end of the header guard
 vkHeader.write("\n#endif")
 vkHeader.close()
 
+
+# End the function pointer finders
+nullInstance += "\n}\n"
+coreInstance1_0 += "\n}\n"
+coreDevice1_0 += "\n}\n"
+coreInstance1_1 += "\n}\n"
+coreDevice1_1 += "\n}\n"
+coreInstance1_2 += "\n}\n"
+coreDevice1_2 += "\n}\n"
+ 
+# Concatinate these all together into one file
+funcTextSource += "\n" + nullInstance + "\n" + coreInstance1_0 + "\n" + coreDevice1_0
+funcTextSource += "\n" + coreInstance1_1 + "\n" + coreDevice1_1 + "\n" + coreInstance1_2 + "\n" + coreDevice1_2
+
+# Write out the function pointer finding code 
+funcText = open("vk/VkFunctionLoading.c", "w")
+funcText.write(funcTextSource)
+funcText.close()
