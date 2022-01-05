@@ -18,9 +18,11 @@ add_library(VkClay Source/VkBindings/VkStubs.c)
 target_sources(VkClay PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/VkClay.h 
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/Vk/vkBinding.h
+	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/Vk/vkFunctionLoading.h
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/dl/DynamicLoader.h)
 
 # Now add in the source folders
+add_subdirectory(Source/VkBindings)
 add_subdirectory(Source/DynamicLoader)
 
 # Organise all source files, this is done last
