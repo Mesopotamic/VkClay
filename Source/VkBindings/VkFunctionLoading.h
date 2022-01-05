@@ -5,7 +5,7 @@
  */
 #ifndef __VK_CLAY_FUNCTION_LOADING_H__
 #define __VK_CLAY_FUNCTION_LOADING_H__
-#include "vkBinding.h"
+#include "VkClay/VkClay.h"
 
 void loadGlobalVulkanFunctions(void);
 

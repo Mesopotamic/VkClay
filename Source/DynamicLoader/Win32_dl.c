@@ -1,6 +1,7 @@
 #include "VkClay/dl/DynamicLoader.h"
 #include "VkClay/vk/vkBinding.h"
-#include "VkClay/vk/vkFunctionLoading.h"
+
+#include "vkFunctionLoading.h"
 
 #include <Windows.h>
 #include <stdio.h>
