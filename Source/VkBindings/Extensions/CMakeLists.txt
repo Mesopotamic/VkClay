@@ -4,16 +4,12 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 target_include_directories(VkClay PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 set(HEADERS
-	${CMAKE_CURRENT_LIST_DIR}/VkFunctionLoading.h
-	${CMAKE_CURRENT_LIST_DIR}/VkWrapped.h
+	
 )
 
 set (SOURCES 
-	${CMAKE_CURRENT_LIST_DIR}/VkFunctionLoading.c
-	${CMAKE_CURRENT_LIST_DIR}/VkWrapped.c
+	${CMAKE_CURRENT_SOURCE_DIR}/Hash.c
 )
 
 target_sources(VkClay PRIVATE ${HEADERS} ${SOURCES})
 
-# Process the extensions
-add_subdirectory(Extensions)
