@@ -14,8 +14,6 @@ os.system("python Binding.py "+ DirPath + "/Vulkan-Headers/registry/vk.xml")
 # Now copy the results 
 import glob
 Vulkan_Headers = glob.glob(DirPath + "/Vulkan-Headers/include/vulkan/*.h")
-Binding_Headers = glob.glob(DirPath + "/vk/*.h")
-Binding_SRC = glob.glob(DirPath + "/vk/*.c")
 
 import shutil
 
@@ -23,10 +21,11 @@ for fileName in Vulkan_Headers:
     print("Copying : " + fileName)
     shutil.copy(fileName, DirPath + "/../Include/VkClay/vk/Vulkan_Raw")
 
-for fileName in Binding_Headers:
-    print("Copying : " + fileName)
-    shutil.copy(fileName, DirPath + "/../Include/VkClay/vk")
+# Copy the bindings
+shutil.copy(DirPath + "/vk/VkBinding.h", DirPath + "/../Include/VkClay/vk/VkBinding.h")
+shutil.copy(DirPath + "/vk/VkStubs.c", DirPath + "/../Source/VkBindings/VkStubs.c")
 
-for fileName in Binding_SRC:
-    print("Copying : " + fileName)
-    shutil.copy(fileName, DirPath + "/../Source/VkBindings")
+# Copy the function loading stuff 
+shutil.copy(DirPath + "/vk/VkFunctionLoading.c", DirPath + "/../Source/VkBindings/VkFunctionLoading.c")
+shutil.copy(DirPath + "/vk/HashTable.h", DirPath + "/../Source/VkBindings/Extensions/HashTable.h")
+shutil.copy(DirPath + "/vk/HashTable.c", DirPath + "/../Source/VkBindings/Extensions/HashTable.c")

@@ -28,6 +28,12 @@ if not xmlPath.endswith(".xml"):
 if not os.path.exists("vk"):
     os.makedirs("vk")
 
+
+#
+# Prepare the top part of the files
+#
+
+
 # Write out the header guard for the Main Vulkan bindings function
 vkHeaderText = "// This was auto generated as part of the Vulkan bindings, so we can dynamically load Vulkan\n" 
 vkHeaderText += "#ifndef __VK_CLAY_BINDINGS_H__\n#define __VK_CLAY_BINDINGS_H__\n"
@@ -39,7 +45,7 @@ vkHeaderText = ""
 # Write out to the stubs, these are functions that stop us from getting unresolved externals
 # As well as stopping the user from getting nullptr exceptions
 VkStubText = "// Auto generated as part of the Vulkan bindings, provides stubs\n"
-VkStubText += "#include \"VkClay/vk/vkBinding.h\"\n#include <stdio.h>\n\n"
+VkStubText += "#include \"VkClay/vk/VkBinding.h\"\n#include <stdio.h>\n\n"
 vkStubs = open("vk/VkStubs.c", "w")
 vkStubs.write(VkStubText)
 VkStubText = ""
@@ -48,15 +54,18 @@ VkStubText = ""
 # things we have to handle, Null instance, which is used for creating an instance
 # Then loading the core functionality and then loading extensions
 funcTextSource = "// Auto generated as part of the Vulkan bindings\n"
-funcTextSource += "#include \"VkClay/vk/vkBinding.h\""
+funcTextSource += "#include \"VkClay/vk/VkBinding.h\""
 
 # We now know for sure that the user has passed an xml file
 # So we can start processing it as if it was an xml
 print("Processing Registry ...")
 
+
 #
-# Start processing the XML 
+# Process the core elements of the xml
 #
+
+
 import xml.etree.ElementTree as et
 xmlTree = et.parse(xmlPath)
 xmlRoot = xmlTree.getroot()
@@ -269,3 +278,68 @@ funcTextSource += "\n" + coreInstance1_1 + "\n" + coreDevice1_1 + "\n" + coreIns
 funcText = open("vk/VkFunctionLoading.c", "w")
 funcText.write(funcTextSource)
 funcText.close()
+
+
+#
+# Now start processing the extensions
+#
+
+# define a hash function, it has to be identical to the one used in our code
+# in this case we're using FNV-1a because it's simple
+import numpy as np
+np.warnings.filterwarnings('ignore', 'overflow') # We actually want overflows in our hashing
+fnv_offset_basis = np.uint64(14695981039346656037)
+fnv_prime = np.uint64(1099511628211)
+
+def fnv_hash(stringkey):
+    result = fnv_offset_basis
+    for c in stringkey:
+        result = np.bitwise_xor(result, np.uint64(ord(c)))
+        result *= fnv_prime
+    return result 
+
+extensionlist = xmlRoot.findall("./extensions/extension")
+tableSize = len(extensionlist)
+
+# Create the table as it is filled in
+extensionTable = [None] * tableSize
+
+# Get the correct index for each element in the list
+for ext in extensionlist:
+    extname = ext.get("name")
+    index = fnv_hash(extname)
+    index = int(index % tableSize)
+
+    # find the next empty space
+    while extensionTable[index] is not None:
+        index = (index + 1) % tableSize
+    
+    # Now place the entry in the table
+    extensionTable[index] = ext
+
+# Place holder text for the extension table
+tableHeaderText = ("#ifndef __HASH_TABLE_HEADER_H__\n"
+    "#define __HASH_TABLE_HEADER_H__\n\n"
+    "#include \"VkClay/VkClay.h\"\n"
+    "#define HASH_TABLE_SIZE (" + str(int(tableSize)) + ")\n"
+    "extern const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE];\n"
+    "\n#endif")
+table = open("vk/HashTable.h", "w")
+table.write(tableHeaderText)
+table.close()
+
+tableSourceText = ("#include \"HashTable.h\"\n"
+    "const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE] = {\n")
+
+for ext in extensionTable:
+    extname = ext.get("name")
+    tableSourceText += ("\t{\n\t\t\"" + str(extname) + "\",\n"
+        "\t\t\"" + str(ext.get("type")) + "\",\n"
+        "\t},\n")
+tableSourceText = tableSourceText[:-2] + "\n};"
+
+table = open("vk/HashTable.c", "w")
+table.write(tableSourceText)
+table.close()
+
+    
