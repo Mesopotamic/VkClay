@@ -1,3 +1,4 @@
+#include "Extensions/HashTable.h"
 #include "VkClay/VkClay.h"
 
 #include <stdbool.h>
@@ -12,9 +13,6 @@
 // Numbers which control the hashing - Yoinked from wikipedia
 #define FNV_OFFSET_BASIS (14695981039346656037)
 #define FNV_PRIME (1099511628211)
-#define HASH_TABLE_SIZE (10)
-
-const char* hash_table[HASH_TABLE_SIZE] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
 
 vkc_ExtensionProps vkc_LookupExtension(const char* extensionName)
 {
@@ -38,7 +36,7 @@ vkc_ExtensionProps vkc_LookupExtension(const char* extensionName)
     bool found = false;
     for (uint32_t i = 0; i < HASH_TABLE_SIZE; i++) {
         // Is the key correct?
-        if (!strcmp(extensionName, hash_table[hash])) {
+        if (!strcmp(extensionName, vkExtensionLookupTable[hash].extensionName)) {
             found = true;
             break;
         }
@@ -47,7 +45,7 @@ vkc_ExtensionProps vkc_LookupExtension(const char* extensionName)
 
     // Where we able to find the hashed element?
     if (found) {
-        vkc_ExtensionProps props = {.extensionName = hash_table[hash],
+        vkc_ExtensionProps props = {.extensionName = vkExtensionLookupTable[hash].extensionName,
                                     .extensionProvidedFunctionNames = NULL};
         return props;
     } else {
