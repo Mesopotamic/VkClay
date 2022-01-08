@@ -32,7 +32,7 @@ if not os.path.exists("vk"):
 vkHeaderText = "// This was auto generated as part of the Vulkan bindings, so we can dynamically load Vulkan\n" 
 vkHeaderText += "#ifndef __VK_CLAY_BINDINGS_H__\n#define __VK_CLAY_BINDINGS_H__\n"
 vkHeaderText += "#define VK_NO_PROTOTYPES\n#include \"Vulkan_Raw/vulkan.h\"\n\n"
-vkHeader = open("vk/vkBinding.h", "w")
+vkHeader = open("vk/VkBinding.h", "w")
 vkHeader.write(vkHeaderText)
 vkHeaderText = ""
 
