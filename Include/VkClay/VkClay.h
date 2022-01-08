@@ -9,14 +9,14 @@
 #define __VK_CLAY_MAIN_HEADER_H__
 
 #include "dl/DynamicLoader.h"  // The header that loads the Vulkan dynamic library
-#include "vk/vkBinding.h"      // The header containing the Vulkan function pointers
+#include "vk/VkBinding.h"      // The header containing the Vulkan function pointers
 
 // The headers above handle core Vulkan and it's function pointers. This section will allow users to easily
 // search for the functionality provided by an extension at runtime
 
 /**
-* A struct that defines all the properties that an extension might have.
-*/
+ * A struct that defines all the properties that an extension might have.
+ */
 typedef struct vkc_ExtensionProps {
     const char* extensionName;
     const char** extensionProvidedFunctionNames;

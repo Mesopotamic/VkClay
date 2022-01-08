@@ -1,5 +1,5 @@
 // Auto generated as part of the Vulkan bindings
-#include "VkClay/vk/vkBinding.h"
+#include "VkClay/vk/VkBinding.h"
 void loadGlobalVulkanFunctions(void)
 {
 	vkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
