@@ -5,6 +5,7 @@
  * vkcreateinstance has to already have been found before we can wrap it
  */
 #include "VkWrapped.h"
+#include "VkFunctionLoading.h"
 
 PFN_vkCreateInstance real_vkCreateInstance = NULL;
 VKAPI_ATTR VkResult VKAPI_CALL wrapped_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo,
@@ -20,10 +21,16 @@ VKAPI_ATTR VkResult VKAPI_CALL wrapped_vkCreateInstance(const VkInstanceCreateIn
     // Pass the create info onto the real vkCreateInstance
     VkResult res = real_vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 
-    // if this failed then fail out
+    // if this failed then fail out early
     if (res != VK_SUCCESS) return res;
 
-    // Do the extra set up
+    // For each instance major version, load it's function pointers
+    // For example we know for a fact we have to at least load 1.0 pointers
+    loadInstance1_0_PFN(*pInstance);
+    if (pCreateInfo->pApplicationInfo->apiVersion >= VK_MAKE_VERSION(1, 1, 0))
+        loadInstance1_1_PFN(*pInstance);
+    if (pCreateInfo->pApplicationInfo->apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+        loadInstance1_2_PFN(*pInstance);
 
     // return the result
     return res;
