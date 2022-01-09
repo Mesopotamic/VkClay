@@ -14,12 +14,16 @@
 // The headers above handle core Vulkan and it's function pointers. This section will allow users to easily
 // search for the functionality provided by an extension at runtime
 
+// Define a function pointer for vkc_ExtensionProps to load it's own function pointers
+typedef void (*vkc_LoadExtPFN)(VkInstance, VkDevice);
+
 /**
  * A struct that defines all the properties that an extension might have.
  */
 typedef struct vkc_ExtensionProps {
     const char* extensionName;
-    const char** extensionProvidedFunctionNames;
+    const char* type;
+    vkc_LoadExtPFN loadExtensionFunctionPointers;
 } vkc_ExtensionProps;
 
 vkc_ExtensionProps vkc_LookupExtension(const char* extensionName);

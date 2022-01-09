@@ -83,6 +83,15 @@ for command in commandRoot:
     # Store the function details for look up later
     func_name_dict[functionName.text] = command
 
+# We now have to look up the functions which are aliases. 
+# I.e functions that have been promoted
+for command in commandRoot:
+    aliasName = command.get("alias")
+    if aliasName is not None:
+        # Found a promoted function
+        func_name_dict[command.attrib["name"]] = func_name_dict[aliasName]
+
+
 # We Need to be able to tell if a function is instance level or device level
 # it is determined by the first paramater, It has to be either vkDevice, or a child of vkDevice 
 # [@category='handle']/*
@@ -105,9 +114,15 @@ for type in allTypes:
 # For each Vulkan function we need to declare a function pointer in the header
 # as well as a stub function that allows users to avoid null pointer throws
 #
+found_function_names = [""]
 def make_header_and_stub(functionName):
     global vkHeaderText
     global VkStubText
+    global found_function_names
+
+    if functionName in found_function_names:
+        return
+    found_function_names.append(functionName)
 
     # Find the xml root for this function by looking it up in the dictionary
     command = func_name_dict[functionName]
@@ -253,14 +268,6 @@ for command in globalCommands:
     " = (PFN_" + command + ")vkGetInstanceProcAddr(NULL, \"" + 
     command + "\");\n")
 
-# Write out the function declarations
-vkHeader.write(vkHeaderText)
-vkStubs.write(VkStubText)
-vkStubs.close()
-vkHeader.write("\n#endif")
-vkHeader.close()
-
-
 # End the function pointer finders
 nullInstance += "\n}\n"
 coreInstance1_0 += "\n}\n"
@@ -328,18 +335,77 @@ table = open("vk/HashTable.h", "w")
 table.write(tableHeaderText)
 table.close()
 
-tableSourceText = ("#include \"HashTable.h\"\n"
-    "const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE] = {\n")
+extFncSourceText = ("#include \"HashTable.h\"\n")
+tableSourceText = ("const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE] = {\n")
 
 for ext in extensionTable:
     extname = ext.get("name")
+    exttype = str(ext.get("type"))
+
     tableSourceText += ("\t{\n\t\t\"" + str(extname) + "\",\n"
-        "\t\t\"" + str(ext.get("type")) + "\",\n"
-        "\t},\n")
+        "\t\t\"" + exttype + "\",\n"
+        "\t\tload_" + extname + "\n\t},\n")
+    extFncSourceText += "void load_" + extname + "(VkInstance instance, VkDevice device)\n{\n" 
+
+    # Been commented out as I don't think we need to supply the function
+    # names provided 
+    #fncNameStrings = ""
+
+    # Before processing the commands provided by the extensions we 
+    # need to ensure that the Vulkan headers supplied to the user 
+    # are in fact defined
+    VkStubText += "#ifdef " + extname + "\n"
+    vkHeaderText += "#ifdef " + extname + "\n"
+    extFncSourceText += "#ifdef " + extname + "\n"
+
+    if exttype is not "None":
+        # Decide which function pointer to use
+        prcaddr = ""
+        if exttype == "instance":
+            prcaddr = "vkGetInstanceProcAddr(instance, "
+        elif exttype == "device":
+            prcaddr = "vkGetDeviceProcAddr(device, "
+
+        for fnc in ext.findall("./require/command"):
+            fncName = fnc.attrib["name"]
+            
+            # Add a new function declaration and stub for extension function
+            make_header_and_stub(fncName) 
+
+            # Add function pointer gabber
+            extFncSourceText += ("\t"+ fncName + " = (PFN_" + fncName + ")"
+             + prcaddr + "\"" + fncName + "\");\n")
+            
+            # Add the function name to the list
+            # fncNameStrings += "\t\t\t\"" + fncName + "\",\n"
+
+
+    # Close the list of functions for loading extensions
+    VkStubText += "#endif\n"
+    vkHeaderText += "#endif\n"
+    extFncSourceText += "#endif\n}\n\n"
+
+    # handle empty arrays
+    #if len(fncNameStrings) == 0:
+    #    fncNameStrings = "\t\tNULL\n"
+    #else:
+    #    fncNameStrings = "\t\t{\n" + fncNameStrings + "\t\t}\n"
+
+    #tableSourceText += fncNameStrings + "\t},\n"
+
 tableSourceText = tableSourceText[:-2] + "\n};"
 
 table = open("vk/HashTable.c", "w")
-table.write(tableSourceText)
+table.write(extFncSourceText + "\n\n" + tableSourceText)
 table.close()
 
-    
+#
+# Write out the stubs and function 
+#
+
+# Write out the function declarations
+vkHeader.write(vkHeaderText)
+vkStubs.write(VkStubText)
+vkStubs.close()
+vkHeader.write("\n#endif")
+vkHeader.close()

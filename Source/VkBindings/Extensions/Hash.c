@@ -45,12 +45,9 @@ vkc_ExtensionProps vkc_LookupExtension(const char* extensionName)
 
     // Where we able to find the hashed element?
     if (found) {
-        vkc_ExtensionProps props = {.extensionName = vkExtensionLookupTable[hash].extensionName,
-                                    .extensionProvidedFunctionNames = NULL};
-        return props;
+        return vkExtensionLookupTable[hash];
     } else {
-        vkc_ExtensionProps props = {.extensionName = "Not found!!!!!",
-                                    .extensionProvidedFunctionNames = NULL};
+        vkc_ExtensionProps props = {.extensionName = "Not found!!!!!"};
         return props;
     }
 }
