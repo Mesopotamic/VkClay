@@ -47,7 +47,7 @@ vkc_ExtensionProps vkc_LookupExtension(const char* extensionName)
     if (found) {
         return vkExtensionLookupTable[hash];
     } else {
-        vkc_ExtensionProps props = {.extensionName = "Not found!!!!!"};
+        vkc_ExtensionProps props = {.extensionName = "Not found"};
         return props;
     }
 }

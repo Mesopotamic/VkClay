@@ -7,6 +7,8 @@
 #include "VkWrapped.h"
 #include "VkFunctionLoading.h"
 
+#include <string.h>
+
 PFN_vkCreateInstance real_vkCreateInstance = NULL;
 VKAPI_ATTR VkResult VKAPI_CALL wrapped_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo,
                                                         const VkAllocationCallbacks* pAllocator,
@@ -31,6 +33,19 @@ VKAPI_ATTR VkResult VKAPI_CALL wrapped_vkCreateInstance(const VkInstanceCreateIn
         loadInstance1_1_PFN(*pInstance);
     if (pCreateInfo->pApplicationInfo->apiVersion >= VK_MAKE_VERSION(1, 2, 0))
         loadInstance1_2_PFN(*pInstance);
+
+    // Now go through each of the parsed instance extensions and try to load them
+    char** extensionList = pCreateInfo->ppEnabledExtensionNames;
+    uint32_t extCount = sizeof(extensionList) / sizeof(char*);
+
+    for (uint32_t i = 0; i < extCount; i++) {
+        // Look up the extension name in the hash table
+        vkc_ExtensionProps prop = vkc_LookupExtension(extensionList[i]);
+
+        if (!strcmp(prop.extensionName, "Not found") || !prop.loadExtensionFunctionPointers) continue;
+
+        prop.loadExtensionFunctionPointers(*pInstance, VK_NULL_HANDLE);
+    }
 
     // return the result
     return res;
