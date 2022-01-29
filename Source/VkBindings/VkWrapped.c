@@ -36,7 +36,7 @@ VKAPI_ATTR VkResult VKAPI_CALL wrapped_vkCreateInstance(const VkInstanceCreateIn
 
     // Now go through each of the parsed instance extensions and try to load them
     char** extensionList = pCreateInfo->ppEnabledExtensionNames;
-    uint32_t extCount = sizeof(extensionList) / sizeof(char*);
+    uint32_t extCount = pCreateInfo->enabledExtensionCount;
 
     for (uint32_t i = 0; i < extCount; i++) {
         // Look up the extension name in the hash table
