@@ -1,5 +1,5 @@
 #include "VkClay/dl/DynamicLoader.h"
-#include "VkClay/vk/vkBinding.h"
+#include "VkClay/vk/VkBinding.h"
 
 #include "VkWrapped.h"
 #include "vkFunctionLoading.h"

@@ -6,7 +6,7 @@
  * automatically fetches the instance level function pointers for the user.
  */
 
-#include "VkClay/vk/vkBinding.h"
+#include "VkClay/vk/VkBinding.h"
 #ifndef __VK_CLAY_VULKAN_WRAPPED_H__
 #define __VK_CLAY_VULKAN_WRAPPED_H__
 

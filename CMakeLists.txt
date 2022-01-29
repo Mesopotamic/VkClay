@@ -15,14 +15,16 @@ set(VkClay_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/Include" CACHE PATH INTERNAL)
 add_library(VkClay Source/VkBindings/VkStubs.c)
 
 # add all of the headers to the cmake tracking as well
-target_sources(VkClay PUBLIC
+target_sources(VkClay PRIVATE
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/VkClay.h 
-	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/Vk/vkBinding.h
+	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/Vk/VkBinding.h
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/dl/DynamicLoader.h)
 
 # Now add in the source folders
 add_subdirectory(Source/VkBindings)
 add_subdirectory(Source/DynamicLoader)
+
+######################################################################################
 
 # Organise all source files, this is done last
 # Get all of the source files added to the project

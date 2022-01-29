@@ -28,18 +28,24 @@ if not xmlPath.endswith(".xml"):
 if not os.path.exists("vk"):
     os.makedirs("vk")
 
+
+#
+# Prepare the top part of the files
+#
+
+
 # Write out the header guard for the Main Vulkan bindings function
 vkHeaderText = "// This was auto generated as part of the Vulkan bindings, so we can dynamically load Vulkan\n" 
 vkHeaderText += "#ifndef __VK_CLAY_BINDINGS_H__\n#define __VK_CLAY_BINDINGS_H__\n"
 vkHeaderText += "#define VK_NO_PROTOTYPES\n#include \"Vulkan_Raw/vulkan.h\"\n\n"
-vkHeader = open("vk/vkBinding.h", "w")
+vkHeader = open("vk/VkBinding.h", "w")
 vkHeader.write(vkHeaderText)
 vkHeaderText = ""
 
 # Write out to the stubs, these are functions that stop us from getting unresolved externals
 # As well as stopping the user from getting nullptr exceptions
 VkStubText = "// Auto generated as part of the Vulkan bindings, provides stubs\n"
-VkStubText += "#include \"VkClay/vk/vkBinding.h\"\n#include <stdio.h>\n\n"
+VkStubText += "#include \"VkClay/vk/VkBinding.h\"\n#include <stdio.h>\n\n"
 vkStubs = open("vk/VkStubs.c", "w")
 vkStubs.write(VkStubText)
 VkStubText = ""
@@ -48,15 +54,18 @@ VkStubText = ""
 # things we have to handle, Null instance, which is used for creating an instance
 # Then loading the core functionality and then loading extensions
 funcTextSource = "// Auto generated as part of the Vulkan bindings\n"
-funcTextSource += "#include \"VkClay/vk/vkBinding.h\""
+funcTextSource += "#include \"VkClay/vk/VkBinding.h\""
 
 # We now know for sure that the user has passed an xml file
 # So we can start processing it as if it was an xml
 print("Processing Registry ...")
 
+
 #
-# Start processing the XML 
+# Process the core elements of the xml
 #
+
+
 import xml.etree.ElementTree as et
 xmlTree = et.parse(xmlPath)
 xmlRoot = xmlTree.getroot()
@@ -73,6 +82,15 @@ for command in commandRoot:
         continue
     # Store the function details for look up later
     func_name_dict[functionName.text] = command
+
+# We now have to look up the functions which are aliases. 
+# I.e functions that have been promoted
+for command in commandRoot:
+    aliasName = command.get("alias")
+    if aliasName is not None:
+        # Found a promoted function
+        func_name_dict[command.attrib["name"]] = func_name_dict[aliasName]
+
 
 # We Need to be able to tell if a function is instance level or device level
 # it is determined by the first paramater, It has to be either vkDevice, or a child of vkDevice 
@@ -96,9 +114,15 @@ for type in allTypes:
 # For each Vulkan function we need to declare a function pointer in the header
 # as well as a stub function that allows users to avoid null pointer throws
 #
+found_function_names = [""]
 def make_header_and_stub(functionName):
     global vkHeaderText
     global VkStubText
+    global found_function_names
+
+    if functionName in found_function_names:
+        return
+    found_function_names.append(functionName)
 
     # Find the xml root for this function by looking it up in the dictionary
     command = func_name_dict[functionName]
@@ -244,14 +268,6 @@ for command in globalCommands:
     " = (PFN_" + command + ")vkGetInstanceProcAddr(NULL, \"" + 
     command + "\");\n")
 
-# Write out the function declarations
-vkHeader.write(vkHeaderText)
-vkStubs.write(VkStubText)
-vkStubs.close()
-vkHeader.write("\n#endif")
-vkHeader.close()
-
-
 # End the function pointer finders
 nullInstance += "\n}\n"
 coreInstance1_0 += "\n}\n"
@@ -269,3 +285,127 @@ funcTextSource += "\n" + coreInstance1_1 + "\n" + coreDevice1_1 + "\n" + coreIns
 funcText = open("vk/VkFunctionLoading.c", "w")
 funcText.write(funcTextSource)
 funcText.close()
+
+
+#
+# Now start processing the extensions
+#
+
+# define a hash function, it has to be identical to the one used in our code
+# in this case we're using FNV-1a because it's simple
+import numpy as np
+np.warnings.filterwarnings('ignore', 'overflow') # We actually want overflows in our hashing
+fnv_offset_basis = np.uint64(14695981039346656037)
+fnv_prime = np.uint64(1099511628211)
+
+def fnv_hash(stringkey):
+    result = fnv_offset_basis
+    for c in stringkey:
+        result = np.bitwise_xor(result, np.uint64(ord(c)))
+        result *= fnv_prime
+    return result 
+
+extensionlist = xmlRoot.findall("./extensions/extension")
+tableSize = len(extensionlist)
+
+# Create the table as it is filled in
+extensionTable = [None] * tableSize
+
+# Get the correct index for each element in the list
+for ext in extensionlist:
+    extname = ext.get("name")
+    index = fnv_hash(extname)
+    index = int(index % tableSize)
+
+    # find the next empty space
+    while extensionTable[index] is not None:
+        index = (index + 1) % tableSize
+    
+    # Now place the entry in the table
+    extensionTable[index] = ext
+
+# Place holder text for the extension table
+tableHeaderText = ("#ifndef __HASH_TABLE_HEADER_H__\n"
+    "#define __HASH_TABLE_HEADER_H__\n\n"
+    "#include \"VkClay/VkClay.h\"\n"
+    "#define HASH_TABLE_SIZE (" + str(int(tableSize)) + ")\n"
+    "extern const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE];\n"
+    "\n#endif")
+table = open("vk/HashTable.h", "w")
+table.write(tableHeaderText)
+table.close()
+
+extFncSourceText = ("#include \"HashTable.h\"\n")
+tableSourceText = ("const vkc_ExtensionProps vkExtensionLookupTable[HASH_TABLE_SIZE] = {\n")
+
+for ext in extensionTable:
+    extname = ext.get("name")
+    exttype = str(ext.get("type"))
+
+    tableSourceText += ("\t{\n\t\t\"" + str(extname) + "\",\n"
+        "\t\t\"" + exttype + "\",\n"
+        "\t\tload_" + extname + "\n\t},\n")
+    extFncSourceText += "void load_" + extname + "(VkInstance instance, VkDevice device)\n{\n" 
+
+    # Been commented out as I don't think we need to supply the function
+    # names provided 
+    #fncNameStrings = ""
+
+    # Before processing the commands provided by the extensions we 
+    # need to ensure that the Vulkan headers supplied to the user 
+    # are in fact defined
+    VkStubText += "#ifdef " + extname + "\n"
+    vkHeaderText += "#ifdef " + extname + "\n"
+    extFncSourceText += "#ifdef " + extname + "\n"
+
+    if exttype is not "None":
+        # Decide which function pointer to use
+        prcaddr = ""
+        if exttype == "instance":
+            prcaddr = "vkGetInstanceProcAddr(instance, "
+        elif exttype == "device":
+            prcaddr = "vkGetDeviceProcAddr(device, "
+
+        for fnc in ext.findall("./require/command"):
+            fncName = fnc.attrib["name"]
+            
+            # Add a new function declaration and stub for extension function
+            make_header_and_stub(fncName) 
+
+            # Add function pointer gabber
+            extFncSourceText += ("\t"+ fncName + " = (PFN_" + fncName + ")"
+             + prcaddr + "\"" + fncName + "\");\n")
+            
+            # Add the function name to the list
+            # fncNameStrings += "\t\t\t\"" + fncName + "\",\n"
+
+
+    # Close the list of functions for loading extensions
+    VkStubText += "#endif\n"
+    vkHeaderText += "#endif\n"
+    extFncSourceText += "#endif\n}\n\n"
+
+    # handle empty arrays
+    #if len(fncNameStrings) == 0:
+    #    fncNameStrings = "\t\tNULL\n"
+    #else:
+    #    fncNameStrings = "\t\t{\n" + fncNameStrings + "\t\t}\n"
+
+    #tableSourceText += fncNameStrings + "\t},\n"
+
+tableSourceText = tableSourceText[:-2] + "\n};"
+
+table = open("vk/HashTable.c", "w")
+table.write(extFncSourceText + "\n\n" + tableSourceText)
+table.close()
+
+#
+# Write out the stubs and function 
+#
+
+# Write out the function declarations
+vkHeader.write(vkHeaderText)
+vkStubs.write(VkStubText)
+vkStubs.close()
+vkHeader.write("\n#endif")
+vkHeader.close()

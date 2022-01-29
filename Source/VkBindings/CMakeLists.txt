@@ -14,3 +14,6 @@ set (SOURCES
 )
 
 target_sources(VkClay PRIVATE ${HEADERS} ${SOURCES})
+
+# Process the extensions
+add_subdirectory(Extensions)
