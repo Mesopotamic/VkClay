@@ -24,6 +24,9 @@ target_sources(VkClay PRIVATE
 add_subdirectory(Source/VkBindings)
 add_subdirectory(Source/DynamicLoader)
 
+# We have to link to the dynamiclly loading libraries 
+# Cmake has a special variable to keep track of this
+target_link_libraries(VkClay ${CMAKE_DL_LIBS})
 ######################################################################################
 
 # Organise all source files, this is done last
