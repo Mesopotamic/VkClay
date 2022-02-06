@@ -7,7 +7,7 @@
 #include "VkWrapped.h"
 
 // The name of the Vulkan library
-const char* libName = "libvulkan.so";
+const char* libName = "libvulkan.so.1";
 void* lib = NULL;
 
 void vkc_LoadVulkan(void)
