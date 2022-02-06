@@ -18,7 +18,7 @@ void vkc_LoadVulkan(void)
     if (lib) {
         // Now we can look for the vkGetInstanceProcAddr function
         PFN_vkGetInstanceProcAddr procAddr =
-          (PFN_vkGetInstanceProcAddr)GetProcAddress(lib, "vkGetInstanceProcAddr");
+          (PFN_vkGetInstanceProcAddr)dlsym(lib, "vkGetInstanceProcAddr");
 
         if (procAddr) {
             printf("Found instance proc address function\n");
