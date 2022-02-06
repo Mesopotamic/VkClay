@@ -8,6 +8,7 @@
 #ifndef __VK_CLAY_MAIN_HEADER_H__
 #define __VK_CLAY_MAIN_HEADER_H__
 
+#include "VkClayEnums.h"       // The header that contains all of the enums
 #include "dl/DynamicLoader.h"  // The header that loads the Vulkan dynamic library
 #include "vk/VkBinding.h"      // The header containing the Vulkan function pointers
 

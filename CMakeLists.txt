@@ -17,6 +17,7 @@ add_library(VkClay Source/VkBindings/VkStubs.c)
 # add all of the headers to the cmake tracking as well
 target_sources(VkClay PRIVATE
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/VkClay.h 
+    ${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/VkClayEnums.h
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/vk/VkBinding.h
 	${CMAKE_CURRENT_LIST_DIR}/Include/VkClay/dl/DynamicLoader.h)
 

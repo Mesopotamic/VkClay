@@ -1,16 +1,14 @@
 #include "VkClay/dl/DynamicLoader.h"
 #include "VkClay/vk/VkBinding.h"
-
 #include "VkWrapped.h"
 #include "vkFunctionLoading.h"
 
 #include <Windows.h>
-#include <stdio.h>
 
 const char* vulkanName = "vulkan-1.dll";
 HINSTANCE vulkanLib;
 
-void vkc_LoadVulkan(void)
+vkcenum vkc_LoadVulkan(void)
 {
     // Open up Vulkan dll
     vulkanLib = LoadLibrary(TEXT(vulkanName));
@@ -22,13 +20,14 @@ void vkc_LoadVulkan(void)
           (PFN_vkGetInstanceProcAddr)GetProcAddress(vulkanLib, "vkGetInstanceProcAddr");
 
         if (procAddr) {
-            printf("Found instance proc address function\n");
+            // Store the instance proc address function
             vkGetInstanceProcAddr = procAddr;
         } else {
-            printf("Could not find instance proc address function \n");
+            // Could not find the most important function, report the fail
+            return vkc_noinstanceproc;
         }
     } else {
-        printf("Could not open the Vulkan library");
+        return vkc_libfail;
     }
 
     // Now that vkprocAddr works lets find all the functions we need
@@ -36,4 +35,6 @@ void vkc_LoadVulkan(void)
 
     // Now wrap the real vkcreateInstance function with our helper
     wrapVkCreateInstance(vkCreateInstance);
+
+    return vkc_success;
 }

@@ -1,5 +1,4 @@
 #include <dlfcn.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "VkClay/dl/DynamicLoader.h"
@@ -10,7 +9,7 @@
 const char* libName = "libvulkan.so.1";
 void* lib = NULL;
 
-void vkc_LoadVulkan(void)
+vkcenum vkc_LoadVulkan(void)
 {
     lib = dlopen(libName, RTLD_LAZY);
 
@@ -21,14 +20,16 @@ void vkc_LoadVulkan(void)
           (PFN_vkGetInstanceProcAddr)dlsym(lib, "vkGetInstanceProcAddr");
 
         if (procAddr) {
-            printf("Found instance proc address function\n");
+            // Found the vkGetInstanceProcAddr and save it for later
             vkGetInstanceProcAddr = procAddr;
         } else {
-            printf("Could not find instance proc address function \n");
+            // Could not find vkGetInstanceProcAddr the most important function
+            // report the error
+            return vkc_noinstanceproc;
         }
     } else {
-        printf("Could not open Vulkan library");
-        return;
+        // Failed to open the Vulkan Library
+        return vkc_libfail;
     }
 
     // Now that vkprocAddr works lets find all the functions we need
@@ -36,4 +37,7 @@ void vkc_LoadVulkan(void)
 
     // Now wrap the real vkcreateInstance function with our helper
     wrapVkCreateInstance(vkCreateInstance);
+
+    // Report the success
+    return vkc_success;
 }
